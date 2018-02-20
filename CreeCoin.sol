@@ -1,26 +1,28 @@
 pragma solidity ^0.4.2;
 
-contract CreeCoin {
-    // Coin setup
-    string public name = "CreeCoin";
-    string public symbol = "CRC";
-    uint8 public initialSupply = 255;
-    uint8 public tokenPriceInEther = 3;
-    uint public tokenPriceInWei = tokenPriceInEther * 1 ether;
+import "./EIP20Interface.sol";
 
-    // Address & token registry
+contract CreeCoin is EIP20Interface {
+    // Coin setup
+    string public constant name = "CreeCoin";
+    string public constant symbol = "CRC";
+    uint8 public constant initialSupply = 255;
+    uint8 public constant tokenPriceInEther = 3;
+    uint public tokenPriceInWei = toWei(tokenPriceInEther);
+
+    // State
     address public owner;
-    address public mintOwner;
-    address public tokenDistributor;
-    mapping (address => uint) public tokenBalances;
+    address public minter;
+    address public distributor;
+    mapping (address => uint) public balances;
     uint public totalSupply;
 
     // Events
-    event Minted(address receiver, uint amount, uint newTotalSupply);
-    event TokenTransfered(address from, address to, uint amount);
-    event TokenBought(address buyer, uint amount);
+    event Minted(address _receiver, uint _amount, uint _newTotalSupply);
+    event Transfered(address _from, address _to, uint _amount);
+    event Bought(address _buyer, uint _amount);
 
-    // Constants
+    // Reference values
     address constant private CREATION_ADDRESS = 0x0;
 
     /*
@@ -29,42 +31,44 @@ contract CreeCoin {
     function CreeCoin() public {
         // setup owner, minter and distributor roles
         owner = msg.sender;
-        mintOwner = owner;
-        tokenDistributor = owner;
+        minter = owner;
+        distributor = owner;
 
         // send the initial supply to the distributor to be distributed
-        tokenBalances[tokenDistributor] += initialSupply;
+        balances[distributor] += initialSupply;
     }
+
+    //function balanceOf(address _)
 
     /*
      * Mint new coins into the total supply.
      */
-    function mint(address receiver, uint amount) public {
-        // check caller is mintOwner
-        require(msg.sender == mintOwner);
+    function mint(address _receiver, uint _amount) public {
+        // check caller is minter
+        require(msg.sender == minter);
 
         // mint to receiver address
-        tokenBalances[receiver] += amount;
-        totalSupply += amount;
+        balances[_receiver] += _amount;
+        totalSupply += _amount;
 
-        Minted(receiver, amount, totalSupply);
+        Minted(_receiver, _amount, totalSupply);
     }
 
     /*
      * Transfer the role of ownership of the mint
      */
-    function transferMintOwnership(address newMintOwner) public {
-        // check caller is mintOwner or owner
-        require((msg.sender == mintOwner) || (msg.sender == owner));
+     function setMinter(address _newMinter) public {
+        // check caller is minter or owner
+        require((msg.sender == minter) || (msg.sender == owner));
 
-        // set new mintOwner
-        mintOwner = newMintOwner;
+        // set new minter
+        minter = _newMinter;
     }
 
     /*
      * Allows a user to buy tokens for Ether.
      */
-    function buyToken() public payable {
+    function buy() public payable {
         // check that the amount of ether sent is greater than 0
         require(msg.value > 0);
         // check the amount sent is enough for at least one token
@@ -78,50 +82,50 @@ contract CreeCoin {
         uint refundableRemainderInWei = msg.value - (toWei(numToDistribute));
 
         // distribute token to sender
-        distributeToken(msg.sender, numToDistribute);
+        distribute(msg.sender, numToDistribute);
         // refund the remainder
         msg.sender.transfer(refundableRemainderInWei);
 
-        TokenBought(msg.sender, numToDistribute);
+        Bought(msg.sender, numToDistribute);
     }
 
     /*
      * Distribute tokens from distributor to a receiver.
      */
-    function distributeToken(address receiver, uint numTokens) private {
+    function distribute(address _receiver, uint _amount) private {
         // check for at least one token, if not something went wrong
-        require(numTokens > 0);
-        // check for balance overflow, causing incorrect tokenBalances value
-        require(tokenBalances[receiver] + numTokens > tokenBalances[receiver]);
+        require(_amount > 0);
+        // check for balance overflow, causing incorrect balances value
+        require(balances[_receiver] + _amount > balances[_receiver]);
 
         // decrement from distributor and increment receiver
-        tokenBalances[tokenDistributor] -= numTokens;
-        tokenBalances[receiver] += numTokens;
+        balances[distributor] -= _amount;
+        balances[_receiver] += _amount;
     }
 
     /*
      * Transfer an amount of tokens from sender to a receiver.
      */
-    function transferToken(address receiver, uint transferAmount) public {
+    function transfer(address _receiver, uint _amount) public {
         // check if they have enough balance
-        require(tokenBalances[msg.sender] >= transferAmount);
+        require(balances[msg.sender] >= _amount);
         // check that they are not accidentally sending it to the creation address
-        require(receiver != CREATION_ADDRESS);
-        // check for balance overflow, causing incorrect tokenBalances value
-        require(tokenBalances[receiver] + transferAmount > tokenBalances[receiver]);
+        require(_receiver != CREATION_ADDRESS);
+        // check for balance overflow, causing incorrect balances value
+        require(balances[_receiver] + _amount > balances[_receiver]);
 
         // decrement from sender and increment receiver
         // WARN: is it possible for this to fail in between and leave the sender out of pocket?
-        tokenBalances[msg.sender] -= transferAmount;
-        tokenBalances[receiver] += transferAmount;
+        balances[msg.sender] -= _amount;
+        balances[_receiver] += _amount;
 
-        TokenTransfered(msg.sender, receiver, transferAmount);
+        Transfered(msg.sender, _receiver, _amount);
     }
 
     /*
      * Utility function for converting ether to wei.
      */
-    function toWei(uint amountInEther) private pure returns(uint) {
-        return amountInEther * 1 ether;
+    function toWei(uint _amountInEther) private pure returns(uint) {
+        return _amountInEther * 1 ether;
     }
 }
