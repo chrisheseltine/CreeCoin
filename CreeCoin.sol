@@ -23,17 +23,22 @@ contract CreeCoin {
     // Constants
     address constant private CREATION_ADDRESS = 0x0;
 
-    // this code is only run ONCE on CREATION!!
+    /*
+     * Initialise the contract and set the contract's initial state.
+     */
     function CreeCoin() public {
         // setup owner, minter and distributor roles
         owner = msg.sender;
         mintOwner = owner;
         tokenDistributor = owner;
 
-        // send the initial supply to the owner to be distributed
-        tokenBalances[mintOwner] += initialSupply;
+        // send the initial supply to the distributor to be distributed
+        tokenBalances[tokenDistributor] += initialSupply;
     }
 
+    /*
+     * Mint new coins into the total supply.
+     */
     function mint(address receiver, uint amount) public {
         // check caller is mintOwner
         require(msg.sender == mintOwner);
@@ -45,6 +50,9 @@ contract CreeCoin {
         Minted(receiver, amount, totalSupply);
     }
 
+    /*
+     * Transfer the role of ownership of the mint
+     */
     function transferMintOwnership(address newMintOwner) public {
         // check caller is mintOwner or owner
         require((msg.sender == mintOwner) || (msg.sender == owner));
@@ -53,6 +61,9 @@ contract CreeCoin {
         mintOwner = newMintOwner;
     }
 
+    /*
+     * Allows a user to buy tokens for Ether.
+     */
     function buyToken() public payable {
         // check that the amount of ether sent is greater than 0
         require(msg.value > 0);
@@ -74,6 +85,9 @@ contract CreeCoin {
         TokenBought(msg.sender, numToDistribute);
     }
 
+    /*
+     * Distribute tokens from distributor to a receiver.
+     */
     function distributeToken(address receiver, uint numTokens) private {
         // check for at least one token, if not something went wrong
         require(numTokens > 0);
@@ -85,6 +99,9 @@ contract CreeCoin {
         tokenBalances[receiver] += numTokens;
     }
 
+    /*
+     * Transfer an amount of tokens from sender to a receiver.
+     */
     function transferToken(address receiver, uint transferAmount) public {
         // check if they have enough balance
         require(tokenBalances[msg.sender] >= transferAmount);
@@ -101,7 +118,10 @@ contract CreeCoin {
         TokenTransfered(msg.sender, receiver, transferAmount);
     }
 
-    function toWei(uint amountInEther) private returns(uint) {
+    /*
+     * Utility function for converting ether to wei.
+     */
+    function toWei(uint amountInEther) private pure returns(uint) {
         return amountInEther * 1 ether;
     }
 }
