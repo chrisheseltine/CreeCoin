@@ -1,8 +1,6 @@
 pragma solidity ^0.4.2;
 
-import "./EIP20Interface.sol";
-
-contract CreeCoin is EIP20Interface {
+contract CreeCoin {
     // Coin setup
     string public constant name = "CreeCoin";
     string public constant symbol = "CRC";
