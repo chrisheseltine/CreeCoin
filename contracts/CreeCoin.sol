@@ -2,7 +2,9 @@ pragma solidity ^0.4.2;
 
 import "./eip20/EIP20.sol";
 
-
+/*
+* CreeCoin: A fixed supply coin providing the power of Cree, to all.
+*/
 contract CreeCoin is EIP20 {
     // Meta for Human Standard Token Compliance
     string public constant name = "CreeCoin";
@@ -30,22 +32,22 @@ contract CreeCoin is EIP20 {
     event Bought(address _buyer, uint _amount);
 
     /*
-     * Initialise the contract and set the contract's initial state.
-     */
+    * Initialise the contract and set the contract's initial state.
+    */
     function CreeCoin() public {
         // setup owner, minter and distributor roles
         owner = msg.sender;
         minter = owner;
         distributor = owner;
 
-        // send the initial supply to the distributor to be distributed
-        balances[distributor] += initialSupply;
+        // distribute and register the initial supply
+        balances[distributor] = initialSupply;
         totalSupply = initialSupply;
     }
 
     /*
-     * Mint new coins into the total supply.
-     */
+    * Mint new coins into the total supply.
+    */
     function mint(address _receiver, uint _amount) public {
         // check caller is minter
         require(msg.sender == minter);
@@ -58,8 +60,8 @@ contract CreeCoin is EIP20 {
     }
 
     /*
-     * Transfer the role of ownership of the mint
-     */
+    * Transfer the role of ownership of the mint
+    */
      function setMinter(address _newMinter) public {
         // check caller is minter or owner
         require( ((msg.sender == minter) || (msg.sender == owner)) );
@@ -69,8 +71,8 @@ contract CreeCoin is EIP20 {
     }
 
     /*
-     * Allows a user to buy tokens for Ether.
-     */
+    * Allows a user to buy tokens for Ether.
+    */
     function buy() public payable {
         // check that the amount of ether sent is greater than 0
         require(msg.value > 0);
@@ -93,8 +95,8 @@ contract CreeCoin is EIP20 {
     }
 
     /*
-     * Distribute tokens from distributor to a receiver.
-     */
+    * Distribute tokens from distributor to a receiver.
+    */
     function distribute(address _receiver, uint _amount) private {
         // check for at least one token, if not something went wrong
         require(_amount > 0);
@@ -107,8 +109,8 @@ contract CreeCoin is EIP20 {
     }
 
     /*
-     * Utility function for converting ether to wei.
-     */
+    * Utility function for converting ether to wei.
+    */
     function toWei(uint _amountInEther) private pure returns(uint) {
         return _amountInEther * 1 ether;
     }
